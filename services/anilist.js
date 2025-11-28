@@ -6,7 +6,7 @@ dotenv.config();
 const client = new GraphQLClient(process.env.ANILIST_API_URL);
 
 export const anilist = {
-    // Search for anime by name
+    // Search for anime by name (returns single best match)
     async searchAnime(searchTerm) {
         const query = gql`
             query ($search: String) {
@@ -32,6 +32,40 @@ export const anilist = {
         try {
             const data = await client.request(query, { search: searchTerm });
             return data.Media;
+        } catch (error) {
+            console.error('AniList API Error:', error);
+            throw error;
+        }
+    },
+
+    // Search for multiple anime matches (returns array)
+    async searchMultipleAnime(searchTerm) {
+        const query = gql`
+            query ($search: String) {
+                Page(page: 1, perPage: 10) {
+                    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+                        id
+                        title {
+                            romaji
+                            english
+                        }
+                        episodes
+                        status
+                        coverImage {
+                            large
+                        }
+                        nextAiringEpisode {
+                            episode
+                            airingAt
+                        }
+                    }
+                }
+            }
+        `;
+
+        try {
+            const data = await client.request(query, { search: searchTerm });
+            return data.Page.media;
         } catch (error) {
             console.error('AniList API Error:', error);
             throw error;
