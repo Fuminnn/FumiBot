@@ -4,9 +4,9 @@ import { anilist } from '../services/anilist.js';
 import { notifyUser } from '../services/notifier.js';
 
 export function startEpisodeChecker(client) {
-    console.log('📡 Started episode checker (runs every 30 minutes)');
+    console.log('📡 Started episode checker (runs every 5 minutes)');
     
-    cron.schedule('*/30 * * * *', async () => {
+    cron.schedule('*/5 * * * *', async () => {
         console.log('🔍 Checking for new episodes...');
         await checkForNewEpisodes(client);
     });
@@ -27,8 +27,8 @@ export async function checkForNewEpisodes(client) {
                 const airingTime = anime.nextAiringEpisode.airingAt;
                 const currentTime = Math.floor(Date.now() / 1000);
 
-                // Check if episode aired within last 30 minutes
-                if (airingTime <= currentTime && (currentTime - airingTime) < 1800) {
+                // Check if episode aired within last 2 hours
+                if (airingTime <= currentTime && (currentTime - airingTime) < 7200) {
                     const watchers = allWatchlists.filter(w => w.anime_id === animeId);
 
                     for (const watcher of watchers) {
@@ -41,6 +41,7 @@ export async function checkForNewEpisodes(client) {
                                 watcher.notification_channel_id
                             );
                             await db.updateEpisode(watcher.discord_user_id, animeId, newEpisode);
+                            console.log(`✅ Notified user about ${anime.title.romaji} Episode ${newEpisode}`);
                         }
                     }
                 }

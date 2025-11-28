@@ -28,7 +28,7 @@ export default {
                 },
                 {
                     name: '💡 How It Works',
-                    value: 'The bot checks for new episodes every 30 minutes and sends notifications to your chosen channel when episodes air!',
+                    value: 'The bot checks for new episodes every 5 minutes and sends notifications to your chosen channel when episodes air!',
                     inline: false
                 },
                 {
