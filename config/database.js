@@ -15,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Database helper functions
 export const db = {
     // Add anime to user's watchlist
-    async addToWatchlist(discordUserId, animeId, animeTitle, totalEpisodes = null) {
+    async addToWatchlist(discordUserId, animeId, animeTitle, totalEpisodes = null, channelId = null) {
         const { data, error } = await supabase
             .from('user_watchlists')
             .insert([
@@ -24,7 +24,8 @@ export const db = {
                     anime_id: animeId,
                     anime_title: animeTitle,
                     total_episodes: totalEpisodes,
-                    current_episode: 0
+                    current_episode: 0,
+                    notification_channel_id: channelId
                 }
             ])
             .select();
@@ -120,5 +121,64 @@ export const db = {
 
         if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
         return data;
+    },
+
+    // === AniList Connection Methods ===
+
+    // Save AniList connection
+    async saveAniListConnection(discordUserId, anilistData, tokens) {
+        const { data, error } = await supabase
+            .from('user_connections')
+            .upsert([
+                {
+                    discord_user_id: discordUserId,
+                    anilist_user_id: anilistData.id,
+                    anilist_username: anilistData.name,
+                    anilist_access_token: tokens.access_token,
+                    anilist_refresh_token: tokens.refresh_token,
+                    token_expires_at: Math.floor(Date.now() / 1000) + tokens.expires_in,
+                    updated_at: new Date().toISOString()
+                }
+            ])
+            .select();
+
+        if (error) throw error;
+        return data[0];
+    },
+
+    // Get AniList connection
+    async getAniListConnection(discordUserId) {
+        const { data, error } = await supabase
+            .from('user_connections')
+            .select('*')
+            .eq('discord_user_id', discordUserId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+    },
+
+    // Delete AniList connection
+    async deleteAniListConnection(discordUserId) {
+        const { data, error } = await supabase
+            .from('user_connections')
+            .delete()
+            .eq('discord_user_id', discordUserId)
+            .select();
+
+        if (error) throw error;
+        return data.length > 0;
+    },
+
+    // Update last sync time
+    async updateLastSync(discordUserId) {
+        const { data, error } = await supabase
+            .from('user_connections')
+            .update({ last_synced: new Date().toISOString() })
+            .eq('discord_user_id', discordUserId)
+            .select();
+
+        if (error) throw error;
+        return data[0];
     }
 };
