@@ -1,18 +1,87 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import { anilistAuth } from './services/anilistAuth.js';
-import { db } from './config/database.js';
+import { GraphQLClient, gql } from 'graphql-request';
 
-dotenv.config();
+// Helper to get access token
+async function getAccessToken(code) {
+    const response = await fetch('https://anilist.co/api/v2/oauth/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+            grant_type: 'authorization_code',
+            client_id: process.env.ANILIST_CLIENT_ID,
+            client_secret: process.env.ANILIST_CLIENT_SECRET,
+            redirect_uri: process.env.ANILIST_REDIRECT_URI,
+            code: code,
+        }),
+    });
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+    if (!response.ok) {
+        throw new Error('Failed to get access token');
+    }
 
-app.get('/callback', async (req, res) => {
+    return await response.json();
+}
+
+// Helper to get authenticated user
+async function getAuthenticatedUser(accessToken) {
+    const client = new GraphQLClient('https://graphql.anilist.co', {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+        },
+    });
+
+    const query = gql`
+        query {
+            Viewer {
+                id
+                name
+                avatar {
+                    large
+                }
+            }
+        }
+    `;
+
+    const data = await client.request(query);
+    return data.Viewer;
+}
+
+// Helper to save to Supabase
+async function saveConnection(discordUserId, anilistData, tokens) {
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/user_connections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.SUPABASE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+            'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+            discord_user_id: discordUserId,
+            anilist_user_id: anilistData.id,
+            anilist_username: anilistData.name,
+            anilist_access_token: tokens.access_token,
+            anilist_refresh_token: tokens.refresh_token,
+            token_expires_at: Math.floor(Date.now() / 1000) + tokens.expires_in,
+            updated_at: new Date().toISOString()
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to save connection');
+    }
+
+    return await response.json();
+}
+
+// Main handler
+export default async function handler(req, res) {
     const { code, state } = req.query;
 
     if (!code || !state) {
-        return res.send(`
+        return res.status(400).send(`
             <!DOCTYPE html>
             <html>
             <head>
@@ -34,13 +103,13 @@ app.get('/callback', async (req, res) => {
     }
 
     try {
-        const tokens = await anilistAuth.getAccessToken(code);
-        const anilistUser = await anilistAuth.getAuthenticatedUser(tokens.access_token);
-        await db.saveAniListConnection(state, anilistUser, tokens);
+        const tokens = await getAccessToken(code);
+        const anilistUser = await getAuthenticatedUser(tokens.access_token);
+        await saveConnection(state, anilistUser, tokens);
 
         console.log(`✅ Connected ${anilistUser.name} for user ${state}`);
 
-        res.send(`
+        res.status(200).send(`
             <!DOCTYPE html>
             <html>
             <head>
@@ -71,7 +140,7 @@ app.get('/callback', async (req, res) => {
 
     } catch (error) {
         console.error('OAuth callback error:', error);
-        res.send(`
+        res.status(500).send(`
             <!DOCTYPE html>
             <html>
             <head>
@@ -92,33 +161,4 @@ app.get('/callback', async (req, res) => {
             </html>
         `);
     }
-});
-
-app.get('/', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Anime Notifier Bot</title>
-            <style>
-                body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                .container { background: white; padding: 40px; border-radius: 10px; text-align: center; max-width: 500px; }
-                h1 { color: #667eea; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🤖 Anime Notifier Bot</h1>
-                <p>OAuth Server Running</p>
-                <p>Use <code>/connect</code> in Discord to link your AniList account.</p>
-            </div>
-        </body>
-        </html>
-    `);
-});
-
-app.listen(PORT, () => {
-    console.log(`🌐 OAuth callback server running on port ${PORT}`);
-});
-
-export { app };
+}

@@ -6,13 +6,6 @@ import { anilist } from './services/anilist.js';
 
 dotenv.config();
 
-// Start OAuth callback server
-import('./server.js').then(() => {
-    console.log('🌐 OAuth server module loaded');
-}).catch(err => {
-    console.error('Failed to load OAuth server:', err);
-});
-
 // Create Discord client
 const client = new Client({
     intents: [
