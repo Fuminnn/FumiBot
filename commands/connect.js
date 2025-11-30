@@ -27,7 +27,7 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#02A9FF')
                 .setTitle('🔗 Connect Your AniList Account')
-                .setDescription('Click the button below to connect your AniList account!\n\n**What this does:**\n• Import your "Watching" anime\n• Auto-sync when you add anime\n• Update AniList when episodes watched\n• Keep everything in sync!')
+                .setDescription('Click the button below to connect your AniList account!\n\n**What this does:**\n• Import your "Watching" anime\n• Auto-sync when you add anime\n• Update AniList when episodes watched\n• Keep everything in sync!\n\n**After clicking:**\nYou\'ll be redirected to AniList to authorize, then automatically connected!')
                 .setFooter({ text: 'Your login is secure via AniList OAuth' });
 
             const row = new ActionRowBuilder()
@@ -42,13 +42,6 @@ export default {
             await interaction.editReply({
                 embeds: [embed],
                 components: [row],
-                ephemeral: true
-            });
-
-            // Note: User will be redirected to a callback URL
-            // For now, they'll need to manually paste the code
-            await interaction.followUp({
-                content: '**After authorizing:**\nCopy the code from the URL and use `/verify <code>` to complete the connection.',
                 ephemeral: true
             });
 

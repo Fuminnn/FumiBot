@@ -49,17 +49,18 @@ async function getAuthenticatedUser(accessToken) {
 }
 
 // Helper to save to Supabase
+// Helper to save to Supabase
 async function saveConnection(discordUserId, anilistData, tokens) {
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/user_connections`, {
-        method: 'POST',
+    // First, try to update existing connection
+    const updateResponse = await fetch(`${process.env.SUPABASE_URL}/rest/v1/user_connections?discord_user_id=eq.${discordUserId}`, {
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'apikey': process.env.SUPABASE_KEY,
             'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
-            'Prefer': 'resolution=merge-duplicates'
+            'Prefer': 'return=representation'
         },
         body: JSON.stringify({
-            discord_user_id: discordUserId,
             anilist_user_id: anilistData.id,
             anilist_username: anilistData.name,
             anilist_access_token: tokens.access_token,
@@ -69,11 +70,42 @@ async function saveConnection(discordUserId, anilistData, tokens) {
         })
     });
 
-    if (!response.ok) {
-        throw new Error('Failed to save connection');
+    // If update found a record, we're done
+    if (updateResponse.ok) {
+        const result = await updateResponse.json();
+        if (result && result.length > 0) {
+            return result[0];
+        }
     }
 
-    return await response.json();
+    // If no existing record, insert new one
+    const insertResponse = await fetch(`${process.env.SUPABASE_URL}/rest/v1/user_connections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.SUPABASE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+            'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+            discord_user_id: discordUserId,
+            anilist_user_id: anilistData.id,
+            anilist_username: anilistData.name,
+            anilist_access_token: tokens.access_token,
+            anilist_refresh_token: tokens.refresh_token,
+            token_expires_at: Math.floor(Date.now() / 1000) + tokens.expires_in,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        })
+    });
+
+    if (!insertResponse.ok) {
+        const errorText = await insertResponse.text();
+        console.error('Failed to save connection:', errorText);
+        throw new Error('Failed to save connection to database');
+    }
+
+    return await insertResponse.json();
 }
 
 // Main handler

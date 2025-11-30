@@ -152,9 +152,9 @@ export const db = {
             .from('user_connections')
             .select('*')
             .eq('discord_user_id', discordUserId)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error) throw error;
         return data;
     },
 

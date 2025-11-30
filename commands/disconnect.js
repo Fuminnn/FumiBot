@@ -10,6 +10,7 @@ export default {
         await interaction.deferReply({ ephemeral: true });
 
         try {
+            // Check if connected
             const connection = await db.getAniListConnection(interaction.user.id);
 
             if (!connection) {
@@ -19,17 +20,37 @@ export default {
                 });
             }
 
-            await db.deleteAniListConnection(interaction.user.id);
+            // Store username before deleting
+            const username = connection.anilist_username;
 
-            await interaction.editReply({
-                content: `✅ Successfully disconnected from AniList account **${connection.anilist_username}**.\n\nYour watchlist in the bot is still intact. Use `/connect` to reconnect anytime!`,
-                ephemeral: true
-            });
+            // Delete connection
+            const deleted = await db.deleteAniListConnection(interaction.user.id);
+
+            if (deleted) {
+                return interaction.editReply({
+                    content: `✅ Successfully disconnected from AniList account **${username}**.\n\nYour watchlist in the bot is still intact. Use \`/connect\` to reconnect anytime!`,
+                    ephemeral: true
+                });
+            } else {
+                return interaction.editReply({
+                    content: '❌ Failed to disconnect. Please try again.',
+                    ephemeral: true
+                });
+            }
 
         } catch (error) {
             console.error('Disconnect error:', error);
-            await interaction.editReply({
-                content: '❌ An error occurred while disconnecting your account.',
+            
+            // Check if it's a "not found" error (already disconnected)
+            if (error.code === 'PGRST116') {
+                return interaction.editReply({
+                    content: '❌ You don\'t have an AniList account connected.\n\nUse `/connect` to link your account!',
+                    ephemeral: true
+                });
+            }
+            
+            return interaction.editReply({
+                content: '❌ An error occurred while disconnecting your account. Please try again.',
                 ephemeral: true
             });
         }
