@@ -7,37 +7,57 @@ export default {
 
     async execute(interaction) {
         const embed = new EmbedBuilder()
-            .setColor('#02A9FF')
-            .setTitle('🤖 Anime Notifier Bot - Help')
-            .setDescription('Track your favorite anime and get notified when new episodes air!')
+            .setColor('#5865F2')
+            .setTitle('🎬 Anime Notifier Bot')
+            .setDescription('*Never miss an episode of your favorite anime!*\n' +
+                '> Track airing schedules and get instant notifications when new episodes drop.')
             .addFields(
                 { 
-                    name: '📺 Main Commands', 
-                    value: '`/add` - Add an anime to your watchlist\n`/list` - View all anime in your watchlist\n`/remove` - Remove an anime from your watchlist\n`/next` - Check when the next episode airs', 
+                    name: '📺 Watchlist Commands', 
+                    value: '**`/add`** · Add anime to your watchlist\n' +
+                           '**`/list`** · View your tracked anime\n' +
+                           '**`/remove`** · Remove anime from list\n' +
+                           '**`/next`** · Check upcoming episodes',
                     inline: false 
                 },
                 { 
-                    name: '⚙️ Settings', 
-                    value: '`/setchannel` - Set this channel for notifications', 
+                    name: '\u200B',
+                    value: '**🔗 AniList Integration**\n' +
+                           '**`/connect`** · Link your AniList account\n' +
+                           '**`/import`** · Import your watching list\n' +
+                           '**`/sync`** · Two-way sync with AniList\n' +
+                           '**`/status`** · Check connection status\n' +
+                           '**`/disconnect`** · Unlink your account',
                     inline: false 
                 },
                 { 
-                    name: '🛠️ Testing Commands', 
-                    value: '`/check` - Manually check for new episodes\n`/test-notify` - Send a test notification', 
+                    name: '\u200B',
+                    value: '**⚙️ Settings**\n' +
+                           '**`/setchannel`** · Set notification channel',
                     inline: false 
                 },
                 {
-                    name: '💡 How It Works',
-                    value: 'The bot checks for new episodes every 5 minutes and sends notifications to your chosen channel when episodes air!',
-                    inline: false
-                },
+                    name: '\u200B',
+                    value: '**🧪 Testing Tools**\n' +
+                           '**`/check`** · Manual episode check\n' +
+                           '**`/test-notify`** · Send test notification',
+                    inline: false 
+                }
+            )
+            .addFields(
                 {
-                    name: '✨ Pro Tip',
-                    value: 'Use autocomplete! When typing anime names in commands, the bot will suggest matching titles.',
+                    name: '\u200B',
+                    value: '**💡 Quick Tips**\n' +
+                           '→ Use autocomplete when typing anime names\n' +
+                           '→ Bot checks for new episodes every 5 minutes\n' +
+                           '→ Notifications sent automatically to your set channel',
                     inline: false
                 }
             )
-            .setFooter({ text: 'Happy watching! 🍿' })
+            .setFooter({ 
+                text: 'Made with ❤️ for anime fans', 
+                iconURL: interaction.client.user.displayAvatarURL() 
+            })
             .setTimestamp();
 
         await interaction.reply({ embeds: [embed], ephemeral: true });
