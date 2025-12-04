@@ -150,5 +150,41 @@ export const anilistAuth = {
             console.error('Error updating progress:', error);
             throw error;
         }
-    }
+    },
+
+    // Add anime to AniList (set status to CURRENT = Watching)
+    async addAnimeToList(accessToken, mediaId) {
+        const client = new GraphQLClient('https://graphql.anilist.co', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const mutation = gql`
+            mutation ($mediaId: Int, $status: MediaListStatus) {
+                SaveMediaListEntry(mediaId: $mediaId, status: $status) {
+                    id
+                    status
+                    progress
+                    media {
+                        title {
+                            romaji
+                        }
+                    }
+                }
+            }
+        `;
+
+        try {
+            const data = await client.request(mutation, {
+                mediaId: mediaId,
+                status: 'CURRENT' // CURRENT = Currently Watching
+            });
+            return data.SaveMediaListEntry;
+        } catch (error) {
+            console.error('Error adding to AniList:', error);
+            throw error;
+        }
+    },  
 };

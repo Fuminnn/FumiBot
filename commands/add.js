@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { db } from '../config/database.js';
 import { anilist } from '../services/anilist.js';
+import { anilistAuth } from '../services/anilistAuth.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -25,6 +26,7 @@ export default {
                 return interaction.editReply('❌ Anime not found.');
             }
 
+            // Add to bot watchlist
             await db.addToWatchlist(
                 interaction.user.id,
                 anime.id,
@@ -33,12 +35,32 @@ export default {
                 interaction.channel.id
             );
 
+            // Cache anime data
             await db.cacheAnime(anime);
 
+            // Check if user has AniList connected
+            const connection = await db.getAniListConnection(interaction.user.id);
+            let anilistStatus = '';
+
+            if (connection) {
+                try {
+                    // Auto-add to AniList
+                    await anilistAuth.addAnimeToList(
+                        connection.anilist_access_token,
+                        anime.id
+                    );
+                    anilistStatus = '\n✅ Also added to your AniList!';
+                } catch (anilistError) {
+                    console.error('Failed to add to AniList:', anilistError);
+                    anilistStatus = '\n⚠️ Added to bot, but failed to sync to AniList';
+                }
+            }
+
+            // Create success embed
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
                 .setTitle('✅ Added to Watchlist')
-                .setDescription(`**${anime.title.romaji || anime.title.english}**`)
+                .setDescription(`**${anime.title.romaji || anime.title.english}**${anilistStatus}`)
                 .addFields(
                     { name: 'Episodes', value: anime.episodes ? `${anime.episodes}` : 'Unknown', inline: true },
                     { name: 'Status', value: anime.status || 'Unknown', inline: true },
