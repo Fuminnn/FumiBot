@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { loadCommands } from './utils/commandLoader.js';
 import { startEpisodeChecker, checkForNewEpisodes } from './utils/episodeChecker.js';
 import { anilist } from './services/anilist.js';
+import { db } from './config/database.js';
 
 dotenv.config();
 
@@ -54,24 +55,63 @@ client.on('interactionCreate', async (interaction) => {
         const focusedOption = interaction.options.getFocused(true);
         
         if (focusedOption.name === 'anime') {
-            const searchTerm = focusedOption.value;
+            const searchTerm = focusedOption.value.toLowerCase();
             
-            if (searchTerm.length < 2) {
-                return interaction.respond([]);
-            }
+            // Check which command is being used
+            if (interaction.commandName === 'remove') {
+                // For /remove - show only watchlist anime
+                try {
+                    const watchlist = await db.getUserWatchlist(interaction.user.id);
+                    
+                    if (!watchlist || watchlist.length === 0) {
+                        return interaction.respond([
+                            { name: '❌ Your watchlist is empty', value: '0' }
+                        ]);
+                    }
 
-            try {
-                const results = await anilist.searchMultipleAnime(searchTerm);
-                
-                const choices = results.slice(0, 25).map(anime => ({
-                    name: `${anime.title.english || anime.title.romaji} ${anime.episodes ? `(${anime.episodes} eps)` : ''}`.slice(0, 100),
-                    value: anime.id.toString()
-                }));
+                    // Filter watchlist based on user input
+                    const filtered = watchlist
+                        .filter(anime => 
+                            anime.anime_title.toLowerCase().includes(searchTerm)
+                        )
+                        .slice(0, 25)
+                        .map(anime => ({
+                            name: anime.anime_title.slice(0, 100),
+                            value: anime.anime_id.toString()
+                        }));
 
-                await interaction.respond(choices);
-            } catch (error) {
-                console.error('Autocomplete error:', error);
-                await interaction.respond([]);
+                    if (filtered.length === 0) {
+                        return interaction.respond([
+                            { name: '❌ No matching anime in your watchlist', value: '0' }
+                        ]);
+                    }
+
+                    await interaction.respond(filtered);
+                } catch (error) {
+                    console.error('Autocomplete error for /remove:', error);
+                    await interaction.respond([
+                        { name: '❌ Error loading your watchlist', value: '0' }
+                    ]);
+                }
+            } else {
+                // For other commands (like /add) - search AniList
+                if (searchTerm.length < 2) {
+                    return interaction.respond([]);
+                }
+
+                try {
+                    const results = await anilist.searchMultipleAnime(searchTerm);
+                    
+                    const choices = results.slice(0, 25).map(anime => ({
+                        name: `${anime.title.english || anime.title.romaji} ${anime.episodes ? `(${anime.episodes} eps)` : ''}`.slice(0, 100),
+                        value: anime.id.toString()
+                    }));
+
+                    await interaction.respond(choices);
+                } catch (error) {
+                    console.error('Autocomplete error:', error);
+                    await interaction.respond([]);
+                }
             }
         }
     }

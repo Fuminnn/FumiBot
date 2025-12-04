@@ -9,7 +9,7 @@ export default {
         .setDescription('Remove an anime from your watchlist')
         .addStringOption(option =>
             option.setName('anime')
-                .setDescription('Search for an anime to remove')
+                .setDescription('Select an anime from your watchlist')
                 .setRequired(true)
                 .setAutocomplete(true)
         ),
@@ -18,6 +18,11 @@ export default {
         await interaction.deferReply();
 
         const animeId = interaction.options.getString('anime');
+
+        // Handle empty watchlist case
+        if (animeId === '0') {
+            return interaction.editReply('❌ Your watchlist is empty or no matching anime found.');
+        }
 
         try {
             const anime = await anilist.getAnimeById(parseInt(animeId));
