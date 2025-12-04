@@ -186,5 +186,67 @@ export const anilistAuth = {
             console.error('Error adding to AniList:', error);
             throw error;
         }
-    },  
+    },
+    
+    // Remove anime from AniList
+    async removeAnimeFromList(accessToken, mediaId) {
+        const client = new GraphQLClient('https://graphql.anilist.co', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        // First, get the entry ID
+        const query = gql`
+            query ($mediaId: Int, $userId: Int) {
+                MediaList(mediaId: $mediaId, userId: $userId) {
+                    id
+                }
+            }
+        `;
+
+        const mutation = gql`
+            mutation ($id: Int) {
+                DeleteMediaListEntry(id: $id) {
+                    deleted
+                }
+            }
+        `;
+
+        try {
+            // Get the user's ID from their token
+            const userQuery = gql`
+                query {
+                    Viewer {
+                        id
+                    }
+                }
+            `;
+            
+            const userData = await client.request(userQuery);
+            const userId = userData.Viewer.id;
+
+            // Get the list entry ID
+            const listData = await client.request(query, {
+                mediaId: mediaId,
+                userId: userId
+            });
+
+            if (!listData.MediaList) {
+                // Anime not in their list, return gracefully
+                return { deleted: false, notFound: true };
+            }
+
+            // Delete the entry
+            const result = await client.request(mutation, {
+                id: listData.MediaList.id
+            });
+
+            return { deleted: result.DeleteMediaListEntry.deleted, notFound: false };
+        } catch (error) {
+            console.error('Error removing from AniList:', error);
+            throw error;
+        }
+    }
 };

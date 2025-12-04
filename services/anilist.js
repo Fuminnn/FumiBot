@@ -47,7 +47,6 @@ export const anilist = {
                         id
                         title {
                             romaji
-                            english
                         }
                         episodes
                         status
