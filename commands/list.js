@@ -21,13 +21,22 @@ export default {
             .setDescription(`You have ${watchlist.length} anime in your watchlist:`)
             .setFooter({ text: 'Use /next <anime> to check next episode' });
 
-        watchlist.forEach((item, index) => {
+        for (let i = 0; i < watchlist.length; i++) {
+            const item = watchlist[i];
+            const cachedAnime = await db.getCachedAnime(item.anime_id);
+            
+            let episodeInfo = `📺 Total Episodes: ${item.total_episodes || 'Unknown'}`;
+            if (cachedAnime?.next_airing_episode) {
+                const currentEpisode = cachedAnime.next_airing_episode - 1;
+                episodeInfo += `\n🎬 Current Airing Episode: ${currentEpisode}`;
+            }
+            
             embed.addFields({
-                name: `${index + 1}. ${item.anime_title}`,
-                value: `Current Episode: ${item.current_episode}${item.total_episodes ? ` / ${item.total_episodes}` : ''}`,
+                name: `${i + 1}. ${item.anime_title}`,
+                value: episodeInfo,
                 inline: false
             });
-        });
+        }
 
         await interaction.editReply({ embeds: [embed] });
     }
