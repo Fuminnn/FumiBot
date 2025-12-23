@@ -6,7 +6,7 @@ dotenv.config();
 const client = new GraphQLClient(process.env.ANILIST_API_URL);
 
 export const anilist = {
-    // Search for anime by name (returns single best match)
+    // Search for anime by name
     async searchAnime(searchTerm) {
         const query = gql`
             query ($search: String) {
@@ -83,9 +83,13 @@ export const anilist = {
                     }
                     episodes
                     status
+                    description
+                    source
                     coverImage {
                         large
+                        extraLarge
                     }
+                    bannerImage
                     nextAiringEpisode {
                         episode
                         airingAt
@@ -114,11 +118,8 @@ export const anilist = {
                         romaji
                         english
                     }
-                    airingSchedule {
-                        nodes {
-                            episode
-                            airingAt
-                        }
+                    coverImage {
+                        large
                     }
                     nextAiringEpisode {
                         episode

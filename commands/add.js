@@ -56,23 +56,39 @@ export default {
                 }
             }
 
-            // Create success embed
+            // Create success embed with full details
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('✅ Added to Watchlist')
+                .setTitle('Added to Watchlist')
                 .setDescription(`**${anime.title.romaji || anime.title.english}**${anilistStatus}`)
+                .setThumbnail(anime.coverImage?.large)
+                .setImage(anime.bannerImage)
                 .addFields(
-                    { name: 'Episodes', value: anime.episodes ? `${anime.episodes}` : 'Unknown', inline: true },
-                    { name: 'Status', value: anime.status || 'Unknown', inline: true },
-                    { name: '📢 Notifications', value: `Will be sent in <#${interaction.channel.id}>`, inline: false }
-                )
-                .setThumbnail(anime.coverImage?.large);
+                    { name: '📺 Episodes', value: anime.episodes ? `${anime.episodes}` : 'Unknown', inline: true },
+                    { name: '📊 Status', value: anime.status || 'Unknown', inline: true }
+                );
 
+            // Add source info if available
+            if (anime.source) {
+                embed.addFields({ name: '📚 Source', value: anime.source, inline: true });
+            }
+
+            // Add next episode info
             if (anime.nextAiringEpisode) {
                 embed.addFields({
                     name: '📅 Next Episode',
-                    value: `Episode ${anime.nextAiringEpisode.episode} - ${anilist.formatAiringTime(anime.nextAiringEpisode.airingAt)}`
+                    value: `Episode ${anime.nextAiringEpisode.episode} - ${anilist.formatAiringTime(anime.nextAiringEpisode.airingAt)}`,
+                    inline: false
                 });
+            }
+
+            // Add description if available
+            if (anime.description) {
+                let desc = anime.description
+                    .replace(/<[^>]*>/g, '')
+                    .substring(0, 1000);
+                if (anime.description.length > 1000) desc += '...';
+                embed.addFields({ name: '📖 Description', value: desc, inline: false });
             }
 
             await interaction.editReply({ embeds: [embed] });

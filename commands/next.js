@@ -29,17 +29,20 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#02A9FF')
                 .setTitle(schedule.title.romaji || schedule.title.english)
-                .setThumbnail(anime.coverImage?.large);
+                .setThumbnail(schedule.coverImage?.large);
 
+            // Episode information
             if (schedule.nextAiringEpisode) {
                 const timeUntil = anilist.getTimeUntilAiring(schedule.nextAiringEpisode.timeUntilAiring);
+                const airDate = anilist.formatAiringTime(schedule.nextAiringEpisode.airingAt);
+                
                 embed.addFields(
                     { name: '📺 Next Episode', value: `Episode ${schedule.nextAiringEpisode.episode}`, inline: true },
                     { name: '⏰ Airing In', value: timeUntil, inline: true },
-                    { name: '📅 Air Date', value: anilist.formatAiringTime(schedule.nextAiringEpisode.airingAt) }
+                    { name: '📅 Air Date', value: airDate, inline: false }
                 );
             } else {
-                embed.setDescription('ℹ️ No upcoming episodes scheduled. This anime may have finished airing.');
+                embed.setDescription('❌ No upcoming episodes scheduled.');
             }
 
             await interaction.editReply({ embeds: [embed] });
