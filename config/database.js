@@ -78,6 +78,19 @@ export const db = {
         return data[0];
     },
 
+    // Update notification channel for an anime
+    async updateNotificationChannel(discordUserId, animeId, channelId) {
+        const { data, error } = await supabase
+            .from('user_watchlists')
+            .update({ notification_channel_id: channelId })
+            .eq('discord_user_id', discordUserId)
+            .eq('anime_id', animeId)
+            .select();
+
+        if (error) throw error;
+        return data[0];
+    },
+
     // Get all watchlist entries (for checking updates)
     async getAllWatchlists() {
         const { data, error } = await supabase

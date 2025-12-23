@@ -16,8 +16,9 @@ export default {
         }
 
         try {
+            // Update notification channel for all anime in user's watchlist
             for (const item of watchlist) {
-                await db.updateEpisode(interaction.user.id, item.anime_id, item.current_episode);
+                await db.updateNotificationChannel(interaction.user.id, item.anime_id, interaction.channel.id);
             }
 
             await interaction.editReply(`✅ Notification channel set to <#${interaction.channel.id}>! All your anime notifications will appear here.`);
